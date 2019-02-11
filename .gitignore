@@ -1,0 +1,14 @@
+# Compiled class file
+*.class
+
+# Log file
+*.log
+*.log.1
+out
+.idea
+# BlueJ files
+*.ctxt
+
+# Package Files #
+.vscode
+.DS_Store
