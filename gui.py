@@ -1,4 +1,4 @@
-
+import time
 from tkinter import Tk, Button, PhotoImage, Frame, X, BOTTOM, Y, Checkbutton, TOP, LEFT, OUTSIDE, StringVar, CENTER, \
     DISABLED
 from tkinter.font import Font
@@ -74,18 +74,6 @@ class Board:
     def get_data_entry(self, point):
         return self.content[point[0], point[1]]
 
-    
-# selection_btn = [
-#     'UNDEFINED',
-#     'RED_SOLID_WHITE_HOLLOW_H',
-#     'RED_SOLID_WHITE_HOLLOW_V',
-#     'WHITE_HOLLOW_RED_SOLID_H',
-#     'WHITE_HOLLOW_RED_SOLID_V',
-#     'RED_HOLLOW_WHITE_SOLID_H',
-#     'RED_HOLLOW_WHITE_SOLID_V',
-#     'WHITE_SOLID_RED_HOLLOW_H',
-#     'WHITE_SOLID_RED_HOLLOW_V',
-# ]
 selection_btn = [
     'UNDEFINED',
     'RED_SOLID_WHITE_HOLLOW_H',
@@ -146,6 +134,8 @@ class GUI:
         self.step = 0
         self.mode = 'M'
         self.last_move_card = None
+        self.player1 = None
+        self.player2 = None
 
 
         # build the board with header
@@ -160,6 +150,15 @@ class GUI:
         test_func = lambda : self.test_function()
         test_button = Button(self.app, command = test_func, text = 'TEST')
         test_button.place(x=20, y=200, height=100, width=120)
+
+        choose_color = lambda : self.select_color()
+        choose_dots = lambda : self.select_dots()
+
+        color_btn = Button(self.app, command = choose_color, text = 'COLOR')
+        color_btn.place(x = 20, y = 350, height = 40, width = 60)
+
+        dots_btn = Button(self.app, command = choose_dots, text = 'DOTS')
+        dots_btn.place(x = 80, y = 350, height = 40, width = 60)
 
         for r in range(0, self.board.rows + 1):
             for c in range(0, self.board.cols + 1):
@@ -206,10 +205,8 @@ class GUI:
                 if (direction == 'H' and 1 <= row <= self.board.rows and 1 <= col <= self.board.cols - 1):
                     point1 = tuple((row, self.board.col_header[col - 1]))
                     point2 = tuple((row, self.board.col_header[col]))
-                # elif (direction == 'V' and 2 <= row <= self.board.rows and 1 <= col <= self.board.rows):
                 elif (direction == 'V' and 1 <= row <= self.board.rows - 1 and 1 <= col <= self.board.rows):
                     point1 = tuple((row, self.board.col_header[col - 1]))
-                    # point2 = tuple((row - 1, self.board.col_header[col - 1]))
                     point2 = tuple((row + 1, self.board.col_header[col - 1]))
                 else:
                     print('out of the board')
@@ -217,20 +214,14 @@ class GUI:
 
                 key1, key2 = get_component_icon(self.cur_selection)
 
-                # todo:check entry status
                 if (self.is_valid_step(row, col, point1, point2)):
                     # update UI
-                    # print(self.board.content[1,'A'].type)
                     entry1_btn = self.data_btn[point1[0], point1[1]]
                     entry1_btn.config(image=self.icons[key1])
                     entry2_btn = self.data_btn[point2[0], point2[1]]
                     entry2_btn.config(image=self.icons[key2])
 
-                    # todo: upate the data status
-                    # 1. update board content
-                    # 2. bind two element, using cur_selection, we know the shape of cube
-                    #    when we choice the place the postion, we can bind two element
-                    #    In the element, we need a attribution to record the neighbourhood
+                    # upate the data status
                     entry1 = self.board.get_data_entry(point1)
                     entry2 = self.board.get_data_entry(point2)
                     str = self.cur_selection.split('_')
@@ -240,7 +231,6 @@ class GUI:
                     self.config_element(entry1, entry2, point1, point2, self.cur_selection)
 
                     # check winner
-                    # print("Check WINNER: ", self.check_winner(point1, point2))
                     self.announce_winner(self.check_winner(point1, point2))
 
                     # config the parameter
@@ -268,22 +258,17 @@ class GUI:
                     print("The Step is not Valid!!!")
 
         else:
-            print("remove card step")
-            print('remove card position:', row , col)
+            print('-------------------------------')
             # todo: remove card step
             # remove card
             # update the GUI
             # remind_card + 1
             # cur_player = cur_player
             point1 = tuple((row, self.board.col_header[col - 1]))
-            print(point1)
+            print('remove card position:',row, col, point1)
             selecte_element1 = self.board.get_data_entry(point1)
             selecte_element2 = selecte_element1.get_neighbour()
             point2 = selecte_element1.get_neighbour_position()
-
-            # test
-            print('point1 ',point1, ' point2 ', point2)
-            print('element1 ',selecte_element1,'element2 ',selecte_element2)
 
             if self.is_valid_remove_step(point1, point2):
 
@@ -305,19 +290,33 @@ class GUI:
                 print('You Can not Choice the block!!!')
 
     def test_function(self):
-        # self.cur_selection = 'RED_SOLID_WHITE_HOLLOW_H'
-        # self.board_btn_clicked(1,1)
-        i = 1
         f = open('test.txt', 'r')
         for line in f.readlines():
             cmd = line.strip()
             command = cmd.split(' ')
-            # print(selection_btn[int(command[1])])
-
-            self.cur_selection = selection_btn[int(command[1])]
-            self.board_btn_clicked(int(command[3]), col_map[command[2]])
+            if len(command) == 4:
+                self.cur_selection = selection_btn[int(command[1])]
+                self.board_btn_clicked(int(command[3]), col_map[command[2]])
+            if len(command) == 7:
+                row = int(command[1])
+                col = col_map[command[0]]
+                self.board_btn_clicked(row, col)
+                self.cur_selection = selection_btn[int(command[4])]
+                col = col_map[command[-2]]
+                row = int(command[-1])
+                self.board_btn_clicked(row, col)
 
         f.close()
+
+    def select_color(self):
+        print('color')
+        self.player1 = 'color'
+        self.player2 = 'dots'
+
+    def select_dots(self):
+        print('dots')
+        self.player1 = 'dots'
+        self.player2 = 'color'
 
 
     def announce_winner(self, winner):
@@ -327,9 +326,16 @@ class GUI:
             else :
                 messagebox.showinfo("WINNER",'Player TWO Win')
         if winner[0] and not winner[1]:
-            messagebox.showinfo("WINNER","Color Win!!")
+            if self.player1 == 'color':
+                messagebox.showinfo("WINNER","Player ONE Win")
+            else:
+                messagebox.showinfo("WINNER", "Player TWO Win")
         elif not winner[0] and winner[1] :
-            messagebox.showinfo("WINNER","Dots Win!!")
+            if self.player1 == 'dots':
+                messagebox.showinfo("WINNER", "Player ONE Win")
+            else:
+                messagebox.showinfo("WINNER", "Player TWO Win")
+
 
 
 
