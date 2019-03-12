@@ -146,6 +146,8 @@ class Node(object):
         card_type = entry1.get_card_type()
 
         if card_type[-1] == 'H':
+            if col >= 7:
+                return False
             if (board.get_data_entry(tuple((row + 1, board.col_header[col]))).get_type() == 0
                     and board.get_data_entry(
                         tuple((point2_row + 1, board.col_header[point2_col]))).get_type() == 0):
@@ -154,6 +156,10 @@ class Node(object):
                 return False
 
         elif card_type[-1] == 'V':
+            if row > point2_row and row >= 12:
+                return False
+            if point2_row > row and point2_row >= 12:
+                return False
             if (board.get_data_entry(tuple((row + 1, board.col_header[col]))).get_type() == 0
                     or board.get_data_entry(tuple((point2_row + 1, board.col_header[point2_col]))).get_type() == 0):
                 return True
@@ -743,14 +749,15 @@ class GUI:
         self.cur_selection = 'UNDEFINED'
 
         # game controller
-        self.card_remain = 24
-        self.cur_player = 1
+        self.card_remain = 4
+        self.cur_player = 0
         self.step = 0
         # self.mode = 'M'
         self.mode = 'AI'
         self.last_move_card = None
         self.player1 = None
         self.player2 = None
+        self.end = 60
 
         self.trace_file = False
         self.ab_on_off = False
@@ -894,6 +901,9 @@ class GUI:
                     self.step = self.step + 1
                     self.player = self.step % 2
                     self.last_move_card = tuple((point1, point2))
+
+                    if self.step > self.end:
+                        messagebox.showinfo('GAME END', 'GAME END')
 
                     if self.player == 0:
                         self.var.set("   Player1 Turn")
@@ -1074,6 +1084,9 @@ class GUI:
                     self.player = self.step % 2
                     self.last_move_card = tuple((point1, point2))
 
+                    if self.step > self.end:
+                        messagebox.showinfo('GAME END','GAME END')
+
                     if self.player == 0:
                         self.var.set("   Player1 Turn")
                     elif self.player == 1:
@@ -1119,6 +1132,10 @@ class GUI:
                 return False
 
         elif card_type[-1] == 'V':
+            if row > point2_row and row >= 12:
+                return False
+            if point2_row > row and point2_row >= 12:
+                return False
             if (board.get_data_entry(tuple((row + 1, board.col_header[col]))).get_type() == 0
                     or board.get_data_entry(tuple((point2_row + 1, board.col_header[point2_col]))).get_type() == 0):
                 return True
@@ -1349,7 +1366,7 @@ class GUI:
 
     def announce_winner(self, winner):
         if winner[0] and winner[1]:
-            if self.cur_player == 0:
+            if self.player == 0:
                 messagebox.showinfo("WINNER",'Player ONE Win')
             else :
                 messagebox.showinfo("WINNER",'Player TWO Win')
