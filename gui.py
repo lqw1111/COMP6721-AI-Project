@@ -60,14 +60,10 @@ class Node(object):
                 for move_position in self.moveable_set:
                     for j in range(1,9):
                         if self.check_move(move_position, selection_btn[j], self.board):
+
                             board = self.move(move_position, selection_btn[j], self.board)
 
-                            # moveable_set = self.modify_moveable_set(move_position, self.moveable_set, board, selection_btn[j])
-                            # removable_set = set()
-                            # removable_set = self.modify_removable_set(move_position, self.removable_set, board, selection_btn[j])
-                            #
-                            moveable_set = self.scan_for_moveable(board)
-                            removable_set = self.scan_for_removable(board)
+                            mv_and_remv = self.scan_for_moveable_and_removeable(board)
 
                             self.children.append(Node(board,
                                                       self.card_remain - 1,
@@ -75,8 +71,9 @@ class Node(object):
                                                       copy.copy(self.move_card),
                                                       'MIN' if self.node_type == 'MAX' else 'MAX',
                                                       selection_btn[j],
-                                                      moveable_set,
-                                                      removable_set))
+                                                      mv_and_remv[0],
+                                                      mv_and_remv[1]))
+
 
             elif self.card_remain == 0:
                 # recycling step
@@ -88,12 +85,7 @@ class Node(object):
                         remove_card_type = self.board.get_data_entry(point1).get_card_type()
 
                         afterMove_board = self.remove(self.board, remove_position)
-
-                        # removable_set = self.rec_modify_removable_set(afterMove_board, remove_position, remove_card_type, self.removable_set, point2)
-                        # moveable_set = self.rec_modify_moveable_set(afterMove_board, remove_position, remove_card_type, self.moveable_set, point2)
-
                         moveable_set = self.scan_for_moveable(afterMove_board)
-                        removable_set = self.scan_for_removable(afterMove_board)
 
                         for move_position in moveable_set:
                             for k in range(1,9):
@@ -120,26 +112,26 @@ class Node(object):
                                                               self.change_to_point(remove_position),
                                                               remove_card_type))
 
+
     def scan_for_removable(self, board):
         removable_set = set()
 
-        for row in board.row_header:
-            for col in range(board.cols):
-                entry1 = board.get_data_entry(tuple((row, board.col_header[col])))
-                if entry1.get_type() != 0 and self.check_removeable(row, col, board):
-                    # removable_set.add(tuple((row, col)))
-                    neighbour = entry1.get_neighbour_position()
-                    neighbourXY = tuple((neighbour[0], col_0_7[neighbour[1]]))
-                    if (neighbourXY not in removable_set) and (tuple((row, col)) not in removable_set):
-                        if entry1.get_card_type()[-1] == 'H':
-                            removable_set.add(tuple((row, col))) if col < neighbourXY[1] else removable_set.add(neighbourXY)
-                        else:
-                            removable_set.add(tuple((row, col))) if row < neighbourXY[0] else removable_set.add(neighbourXY)
+        for point, entry in board.content.items():
+            row = point[0]
+            col = col_0_7[point[1]]
+            if entry.get_type() != 0 and self.check_removeable(row, col, board, entry):
+                neighbour = entry.get_neighbour_position()
+                neighbourXY = tuple((neighbour[0], col_0_7[neighbour[1]]))
+                if (neighbourXY not in removable_set) and (tuple((row, col)) not in removable_set):
+                    if entry.get_card_type()[-1] == 'H':
+                        removable_set.add(tuple((row, col))) if col < neighbourXY[1] else removable_set.add(neighbourXY)
+                    else:
+                        removable_set.add(tuple((row, col))) if row < neighbourXY[0] else removable_set.add(neighbourXY)
         return removable_set
 
-    def check_removeable(self, row, col, board):
-        point1 = tuple((row, board.col_header[col]))
-        entry1 = board.get_data_entry(point1)
+
+    def check_removeable(self, row, col, board, entry1):
+
         point2 = entry1.get_neighbour_position()
         point2_row = point2[0]
         point2_col = col_0_7[point2[1]]
@@ -167,15 +159,38 @@ class Node(object):
                 return False
 
 
-    def scan_for_moveable(self,board):
+    def scan_for_moveable(self, board):
         moveable_set = set()
 
-        for row in board.row_header:
-            for col in range(board.cols):
-                if board.get_data_entry(tuple((row, board.col_header[col]))).get_type() == 0 and self.check_moveable(row, col,board):
-                    moveable_set.add(tuple((row, col)))
+
+        for point, entry in board.content.items():
+            row = point[0]
+            col = col_0_7[point[1]]
+            if entry.get_type() == 0 and self.check_moveable(row, col, board):
+                moveable_set.add(tuple((row, col)))
 
         return moveable_set
+
+    def scan_for_moveable_and_removeable(self, board):
+        moveable_set = set()
+        removable_set = set()
+
+        for point, entry in board.content.items():
+            row = point[0]
+            col = col_0_7[point[1]]
+            if entry.get_type() == 0 and self.check_moveable(row, col, board):
+                moveable_set.add(tuple((row, col)))
+
+            if entry.get_type() != 0 and self.check_removeable(row, col, board, entry):
+                neighbour = entry.get_neighbour_position()
+                neighbourXY = tuple((neighbour[0], col_0_7[neighbour[1]]))
+                if (neighbourXY not in removable_set) and (tuple((row, col)) not in removable_set):
+                    if entry.get_card_type()[-1] == 'H':
+                        removable_set.add(tuple((row, col))) if col < neighbourXY[1] else removable_set.add(neighbourXY)
+                    else:
+                        removable_set.add(tuple((row, col))) if row < neighbourXY[0] else removable_set.add(neighbourXY)
+
+        return tuple((moveable_set,removable_set))
 
     def check_moveable(self, row, col, board):
         if row == 12 and col == 7:
@@ -351,11 +366,6 @@ class Node(object):
     #     return moveable_set
 
     def remove(self, board, remove_position):
-        # modify the board
-        # set the element to empty
-        # record the remove position into remove_card_position
-        # record the remove card type
-        # return the deep copy of the board
         board_C = copy.deepcopy(board)
         row = remove_position[0]
         col = remove_position[1]
@@ -1020,21 +1030,23 @@ class GUI:
             col = col_map[move_point[1]]
             self.execute_ai_step(row, col)
 
-    def get_removable_set(self, board):
-        removable_set = set()
+    # def get_removable_set(self, board):
+    #     removable_set = set()
+    #
+    #     for row in board.row_header:
+    #         for col in range(board.cols):
+    #             entry1 = board.get_data_entry(tuple((row, board.col_header[col])))
+    #             if entry1.get_type() != 0 and self.check_removeable(row, col, self.board):
+    #                 neighbour = entry1.get_neighbour_position()
+    #                 neighbourXY = tuple((neighbour[0], col_0_7[neighbour[1]]))
+    #                 if (neighbourXY not in removable_set) and (tuple((row, col)) not in removable_set):
+    #                     if entry1.get_card_type()[-1] == 'H':
+    #                         removable_set.add(tuple((row, col))) if col < neighbourXY[1] else removable_set.add(neighbourXY)
+    #                     else:
+    #                         removable_set.add(tuple((row, col))) if row < neighbourXY[0] else removable_set.add(neighbourXY)
+    #     return removable_set
 
-        for row in board.row_header:
-            for col in range(board.cols):
-                entry1 = board.get_data_entry(tuple((row, board.col_header[col])))
-                if entry1.get_type() != 0 and self.check_removeable(row, col, self.board):
-                    neighbour = entry1.get_neighbour_position()
-                    neighbourXY = tuple((neighbour[0], col_0_7[neighbour[1]]))
-                    if (neighbourXY not in removable_set) and (tuple((row, col)) not in removable_set):
-                        if entry1.get_card_type()[-1] == 'H':
-                            removable_set.add(tuple((row, col))) if col < neighbourXY[1] else removable_set.add(neighbourXY)
-                        else:
-                            removable_set.add(tuple((row, col))) if row < neighbourXY[0] else removable_set.add(neighbourXY)
-        return removable_set
+
 
     def execute_ai_step(self, row , col):
         if (self.card_remain > 0):
@@ -1116,9 +1128,23 @@ class GUI:
             else:
                 print('You Can not Choice the block!!!')
 
-    def check_removeable(self, row, col, board):
-        point1 = tuple((row, board.col_header[col]))
-        entry1 = board.get_data_entry(point1)
+    def get_removable_set(self, board):
+        removable_set = set()
+
+        for point, entry in board.content.items():
+            row = point[0]
+            col = col_0_7[point[1]]
+            if entry.get_type() != 0 and self.check_removeable(row, col, self.board, entry):
+                neighbour = entry.get_neighbour_position()
+                neighbourXY = tuple((neighbour[0], col_0_7[neighbour[1]]))
+                if (neighbourXY not in removable_set) and (tuple((row, col)) not in removable_set):
+                    if entry.get_card_type()[-1] == 'H':
+                        removable_set.add(tuple((row, col))) if col < neighbourXY[1] else removable_set.add(neighbourXY)
+                    else:
+                        removable_set.add(tuple((row, col))) if row < neighbourXY[0] else removable_set.add(neighbourXY)
+        return removable_set
+
+    def check_removeable(self, row, col, board, entry1):
         point2 = entry1.get_neighbour_position()
         point2_row = point2[0]
         point2_col = col_0_7[point2[1]]
@@ -1206,16 +1232,27 @@ class GUI:
             self.board_btn_clicked(row, col)
 
 
+    # def get_moveable_set(self, board):
+    #     # moveable store (1,0) -> (1, 'A') can be reflect to point
+    #     moveable_set = set()
+    #
+    #     for row in board.row_header:
+    #         for col in range(board.cols):
+    #             if board.get_data_entry(tuple((row, board.col_header[col]))).get_type() == 0 and self.check_moveable(row, col, self.board):
+    #                 moveable_set.add(tuple((row, col)))
+    #
+    #     return moveable_set
+
     def get_moveable_set(self, board):
-        # moveable store (1,0) -> (1, 'A') can be reflect to point
         moveable_set = set()
 
-        for row in board.row_header:
-            for col in range(board.cols):
-                if board.get_data_entry(tuple((row, board.col_header[col]))).get_type() == 0 and self.check_moveable(row, col, self.board):
-                    moveable_set.add(tuple((row, col)))
-
+        for point, entry in board.content.items():
+            row = point[0]
+            col = col_0_7[point[1]]
+            if entry.get_type() == 0 and self.check_moveable(row, col, self.board):
+                moveable_set.add(tuple((row, col)))
         return moveable_set
+
 
     def check_moveable(self, row, col, board):
         # check first line
@@ -1289,17 +1326,33 @@ class GUI:
 
 
     def test_function(self):
-        removable_set = set()
+        # removable_set = set()
+        #
+        # for row in self.board.row_header:
+        #     for col in range(self.board.cols):
+        #         if self.board.get_data_entry(tuple((row, self.board.col_header[col]))).get_type() != 0 \
+        #                 and self.check_removeable(row, col, self.board):
+        #             neighbour = self.board.get_data_entry(tuple((row, self.board.col_header[col]))).get_neighbour_position()
+        #             neighbourXY = tuple((neighbour[0], col_0_7[neighbour[1]]))
+        #             if (neighbourXY not in removable_set) and (tuple((row, col)) not in removable_set):
+        #                 removable_set.add(tuple((row, col)))
+        # return removable_set
+        start = datetime.datetime.now()
+        board = copy.deepcopy(self.board)
+        end = datetime.datetime.now()
+        print(end - start)
 
-        for row in self.board.row_header:
-            for col in range(self.board.cols):
-                if self.board.get_data_entry(tuple((row, self.board.col_header[col]))).get_type() != 0 \
-                        and self.check_removeable(row, col, self.board):
-                    neighbour = self.board.get_data_entry(tuple((row, self.board.col_header[col]))).get_neighbour_position()
-                    neighbourXY = tuple((neighbour[0], col_0_7[neighbour[1]]))
-                    if (neighbourXY not in removable_set) and (tuple((row, col)) not in removable_set):
-                        removable_set.add(tuple((row, col)))
-        return removable_set
+        start2 = datetime.datetime.now()
+        board = copy.copy(self.board)
+        end2 = datetime.datetime.now()
+        print(end2 - start2)
+
+        start1 = datetime.datetime.now()
+        board1 = Board()
+        end1 = datetime.datetime.now()
+        print(end1 - start1)
+
+
 
     def MinMax(self, node, depth):
         if depth == 0:
