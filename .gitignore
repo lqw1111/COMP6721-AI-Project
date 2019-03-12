@@ -12,3 +12,5 @@ out
 # Package Files #
 .vscode
 .DS_Store
+.pdf
+.txt
