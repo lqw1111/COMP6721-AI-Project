@@ -13,6 +13,7 @@ import numpy as np
 element_map = {'EMPTY_TYPE':0 , 'RED_SOLID':1, 'WHITE_HOLLOW':2, 'RED_HOLLOW':3, 'WHITE_SOLID': 4}
 col_map = {'A':1,'B':2, 'C':3, 'D':4, 'E':5, 'F':6, 'G':7, 'H':8}
 col_0_7 = {'A':0,'B':1, 'C':2, 'D':3, 'E':4, 'F':5, 'G':6, 'H':7}
+depth = 2
 
 selection_btn = [
     'UNDEFINED',
@@ -36,19 +37,20 @@ selection_map = {'RED_SOLID_WHITE_HOLLOW_H': 1 ,
                  'RED_HOLLOW_WHITE_SOLID_V': 8}
 
 class Node(object):
-    def __init__(self, board, card_remain, depth, last_move_card, node_type, selection_card_type, moveable_set,removable_set,recycling = False ,remove_card_position = None, remove_card_type = None ):
+    def __init__(self, board, card_remain, depth, last_move_card, node_type, i_value, selection_card_type, moveable_set,removable_set,recycling = False ,remove_card_position = None, remove_card_type = None ):
         self.board = board                                                                              # board
         self.card_remain = card_remain                                                                  # int
         self.depth = depth                                                                              # int
-        self.last_move_card = last_move_card                                                            # (1,'A')
+        self.last_move_card = last_move_card                                                            # tuple((1,'A'),(1,'B'))
         self.move_card = last_move_card                                                                 # use for record the move step eg. (1,'A')
         self.node_type = node_type                                                                      # 'MAX' or 'MIN'
-        self.i_value = -maxsize if self.node_type == 'MAX' else maxsize                                 # int
+        # self.i_value = -maxsize if self.node_type == 'MAX' else maxsize                                 # int
+        self.i_value = i_value
         self.selection_card_type = selection_card_type                                                  # 'RED_SOLID_WHITE_HOLLOW_H'
         self.moveable_set = moveable_set                                                                # {(1,0),(1,1)} -> {(1,'A'),(1,'B')}
         self.removable_set = removable_set                                                              # {(1,0),(1,1)} -> {(1,'A'),(1,'B')}
         self.recycling = recycling                                                                      # boolean
-        self.remove_card_position = remove_card_position                                                # (1,'A')
+        self.remove_card_position = remove_card_position                                                # tuple((1,'A'),(1,'B'))
         self.remove_card_type = remove_card_type                                                        # 'RED_SOLID_WHITE_HOLLOW_H'
         self.children = []
         self.CreateChildren()
@@ -61,19 +63,24 @@ class Node(object):
                     for j in range(1,9):
                         if self.check_move(move_position, selection_btn[j], self.board):
 
-                            board = self.move(move_position, selection_btn[j], self.board)
+                            move_point = self.move(move_position, selection_btn[j], self.board)
 
-                            mv_and_remv = self.scan_for_moveable_and_removeable(board)
+                            mv_and_remv = self.scan_for_moveable_and_removeable(self.board)
 
-                            self.children.append(Node(board,
+                            self.children.append(Node(self.board,
                                                       self.card_remain - 1,
                                                       self.depth - 1,
                                                       copy.copy(self.move_card),
                                                       'MIN' if self.node_type == 'MAX' else 'MAX',
+                                                      naive_heuristic(self.board),
                                                       selection_btn[j],
                                                       mv_and_remv[0],
                                                       mv_and_remv[1]))
 
+                            self.restore(self.board, move_point, selection_btn[j])
+
+                if self.depth != depth:
+                    self.restore(self.board, self.last_move_card, self.selection_card_type)
 
             elif self.card_remain == 0:
                 # recycling step
@@ -81,37 +88,90 @@ class Node(object):
                     if self.check_removable(self.board, remove_position):
 
                         point1 = tuple((remove_position[0],self.board.col_header[remove_position[1]]))
-                        point2 = self.board.get_data_entry(point1).get_neighbour_position()
                         remove_card_type = self.board.get_data_entry(point1).get_card_type()
 
-                        afterMove_board = self.remove(self.board, remove_position)
-                        moveable_set = self.scan_for_moveable(afterMove_board)
+                        remove_tuple_point = self.remove(self.board, remove_position)
+                        moveable_set = self.scan_for_moveable(self.board)
 
                         for move_position in moveable_set:
                             for k in range(1,9):
                                 if move_position == remove_position and selection_map[remove_card_type] == k:
                                     continue
-                                elif self.check_move(move_position, selection_btn[k], afterMove_board):
-                                    afterM_board = self.move(move_position, selection_btn[k], afterMove_board)
+                                elif self.check_move(move_position, selection_btn[k], self.board):
+                                    move_point = self.move(move_position, selection_btn[k], self.board)
 
-                                    # moveable_set = self.modify_moveable_set(move_position, moveable_set, afterM_board, selection_btn[k])
-                                    # removable_set = self.modify_removable_set(move_position,removable_set, afterM_board, selection_btn[k])
+                                    moveable_set = self.scan_for_moveable(self.board)
+                                    removable_set = self.scan_for_removable(self.board)
 
-                                    moveable_set = self.scan_for_moveable(afterM_board)
-                                    removable_set = self.scan_for_removable(afterM_board)
-
-                                    self.children.append(Node(afterM_board,
+                                    self.children.append(Node(self.board,
                                                               self.card_remain - 1 + 1,
                                                               self.depth - 1,
                                                               copy.copy(self.move_card),
                                                               'MIN' if self.node_type == 'MAX' else 'MAX',
+                                                              naive_heuristic(self.board),
                                                               selection_btn[k],
                                                               moveable_set,
                                                               removable_set,
                                                               True,
-                                                              self.change_to_point(remove_position),
+                                                              remove_tuple_point,
                                                               remove_card_type))
 
+                                    self.restore(self.board, move_point, selection_btn[k])
+
+                        self.restore_remove(self.board, remove_tuple_point,remove_card_type)
+
+                if self.depth != depth:
+                    if self.recycling and (self.remove_card_type != None) and (self.remove_card_position != None):
+                        self.restore(self.board, self.last_move_card, self.selection_card_type)
+                        self.restore_remove(self.board, self.remove_card_position, self.remove_card_type)
+                    else:
+                        self.restore(self.board, self.last_move_card, self.selection_card_type)
+
+    def restore(self, board, last_move_card, selection_btn):
+
+        if selection_btn[-1] == 'H':
+            board.get_data_entry(last_move_card[0]).set_empty()
+            board.get_data_entry(last_move_card[1]).set_empty()
+        elif selection_btn[-1] == 'V':
+            board.get_data_entry(last_move_card[0]).set_empty()
+            board.get_data_entry(last_move_card[1]).set_empty()
+
+    def restore_remove(self, board, remove_card_position, remove_card_type):
+
+        point_tuple = self.judge_order(remove_card_position, remove_card_type)
+        point1 = point_tuple[0]
+        point2 = point_tuple[1]
+
+        if remove_card_type[-1] == 'H':
+            entry1 = board.get_data_entry(point1)
+            entry2 = board.get_data_entry(point2)
+            str = remove_card_type.split('_')
+            entry1.set_type(element_map[str[0] + '_' + str[1]])
+            entry2.set_type(element_map[str[2] + '_' + str[3]])
+            self.config_element(entry1, entry2, point1, point2, remove_card_type)
+
+        elif remove_card_type[-1] == 'V':
+            entry1 = board.get_data_entry(point1)
+            entry2 = board.get_data_entry(point2)
+            str = remove_card_type.split('_')
+            entry1.set_type(element_map[str[0] + '_' + str[1]])
+            entry2.set_type(element_map[str[2] + '_' + str[3]])
+            self.config_element(entry1, entry2, point1, point2, remove_card_type)
+
+    def judge_order(self, remove_card_position, remove_card_type):
+        point1 = remove_card_position[0]
+        point2 = remove_card_position[1]
+
+        if remove_card_type[-1] == 'H':
+            if point1[1] < point2[1]:
+                return tuple((point1, point2))
+            else:
+                return tuple((point2, point1))
+        elif remove_card_type[-1] == 'V':
+            if point1[0] < point2[0]:
+                return tuple((point1, point2))
+            else:
+                return tuple((point2, point1))
 
     def scan_for_removable(self, board):
         removable_set = set()
@@ -231,151 +291,17 @@ class Node(object):
         else:
             return False
 
-    # def rec_modify_removable_set(self, board, remove_position, remove_card_type, removable_set, point2):
-    #     # if remove_card_type is H
-    #     #       if row == 1
-    #     #           get the point1 and point2
-    #     #           remove the point1 and point2
-    #     #       else
-    #     #           point1_down
-    #     #           point2_down
-    #     #           point1_down_neighbour
-    #     #           point2_down_neighbour
-    #     #           check whether for the four point can remove
-    #     #           if can remove add into removable_set
-    #     #           remove the point1 and point2
-    #     # if remove_card_type is V
-    #     #       if row == 1
-    #     #           get the point1 and point2
-    #     #           remove the point1 and point2
-    #     #       else:
-    #     #           point1_down
-    #     #           point1_down_neighbour
-    #     #           check whether the two point can add into the removable_set
-    #     #           remove the point1 and point2
-    #     #   return the copy of the removable_set
-    #     row = remove_position[0]
-    #     col = remove_position[1]
-    #     removable_set = copy.copy(removable_set)
-    #     point2_row = point2[0]
-    #     point2_col = col_0_7[point2[1]]
-    #
-    #     if remove_card_type[-1] == 'H':
-    #         removable_set.discard(tuple((row, col)))
-    #         removable_set.discard(tuple((point2_row, point2_col)))
-    #         if row != 1:
-    #             point1_down = tuple((row - 1, board.col_header[col]))
-    #             entry1_down = board.get_data_entry(point1_down)
-    #             entry1_down_type = entry1_down.get_card_type()
-    #
-    #             if entry1_down_type[-1] == 'H':
-    #                 entry1_down_neighbour = entry1_down.get_neighbour_position()
-    #                 entry1_down_neighbourROW = entry1_down_neighbour[0]
-    #                 entry1_down_neighbourCOL = col_0_7[entry1_down_neighbour[1]]
-    #
-    #                 if board.get_data_entry(tuple((entry1_down_neighbourROW + 1, board.col_header[entry1_down_neighbourCOL]))).get_type() == 0:
-    #                     removable_set.add(tuple((row - 1, col)))
-    #                     removable_set.add(tuple((entry1_down_neighbourROW, entry1_down_neighbourCOL)))
-    #
-    #             elif entry1_down_type[-1] == 'V':
-    #                 entry1_down_neighbour = entry1_down.get_neighbour_position()
-    #                 entry1_down_neighbourROW = entry1_down_neighbour[0]
-    #                 entry1_down_neighbourCOL = col_0_7[entry1_down_neighbour[1]]
-    #
-    #                 removable_set.add(tuple((row - 1, col)))
-    #                 removable_set.add(tuple((entry1_down_neighbourROW, entry1_down_neighbourCOL)))
-    #
-    #             point2_down = tuple((point2_row - 1, board.col_header[point2_col]))
-    #             entry2_down = board.get_data_entry(point2_down)
-    #             entry2_down_type = entry2_down.get_card_type()
-    #
-    #             if entry2_down_type[-1] == 'H':
-    #                 entry2_down_neighbour = entry1_down.get_neighbour_position()
-    #                 entry2_down_neighbourROW = entry2_down_neighbour[0]
-    #                 entry2_down_neighbourCOL = col_0_7[entry2_down_neighbour[1]]
-    #
-    #                 if board.get_data_entry(tuple((entry2_down_neighbourROW + 1, board.col_header[entry2_down_neighbourCOL]))).get_type() == 0:
-    #                     removable_set.add(tuple((row - 1, col)))
-    #                     removable_set.add(tuple((entry2_down_neighbourROW, entry2_down_neighbourCOL)))
-    #
-    #             elif entry2_down_type[-1] == 'V':
-    #                 entry2_down_neighbour = entry2_down.get_neighbour_position()
-    #                 entry2_down_neighbourROW = entry2_down_neighbour[0]
-    #                 entry2_down_neighbourCOL = col_0_7[entry2_down_neighbour[1]]
-    #
-    #                 removable_set.add(tuple((row - 1, col)))
-    #                 removable_set.add(tuple((entry2_down_neighbourROW, entry2_down_neighbourCOL)))
-    #
-    #     elif remove_card_type[-1] == 'V':
-    #         removable_set.discard(tuple((row, col)))
-    #         removable_set.discard(tuple((point2_row, point2_col)))
-    #
-    #         if row != 1 and point2_row != 1:
-    #             judge_point = tuple((row - 1, board.col_header[col]))
-    #
-    #             if row > point2_row:
-    #                 judge_point = tuple((point2_row - 1 , board.col_header[point2_col]))
-    #
-    #             judge_entry = board.get_data_entry(judge_point)
-    #             judge_entry_type = judge_entry.get_card_type()
-    #
-    #             if judge_entry_type[-1] == 'H':
-    #                 judge_entry_neighbour = judge_entry.get_neighbour_position()
-    #                 judge_entry_neighbourROW = judge_entry_neighbour[0]
-    #                 judge_entry_neighbourCOL = col_0_7[judge_entry_neighbour[1]]
-    #
-    #                 if board.get_data_entry(tuple((judge_entry_neighbourROW + 1, board.col_header[judge_entry_neighbourCOL]))).get_type() == 0:
-    #                     removable_set.add(judge_point)
-    #                     removable_set.add(tuple((judge_entry_neighbourROW,judge_entry_neighbourCOL)))
-    #
-    #             elif judge_entry_type[-1] == 'V':
-    #                 judge_entry_neighbourXY = judge_entry.get_neighbour_position()
-    #                 judge_entry_neighbourROW = judge_entry_neighbourXY[0]
-    #                 judge_entry_neighbourCOL = col_0_7[judge_entry_neighbourXY[1]]
-    #
-    #                 removable_set.add(judge_point)
-    #                 removable_set.add(tuple((judge_entry_neighbourROW, judge_entry_neighbourCOL)))
-    #
-    #     return removable_set
-
-    # def rec_modify_moveable_set(self, board, remove_position, remove_card_type, moveable_set, point2):
-    #     # if remove_card_type is H
-    #     #       add point1 and point2 into moveable_set
-    #     # if remove_card_type is V
-    #     #       add the upper point into moveable_set
-    #     row = remove_position[0]
-    #     col = remove_position[1]
-    #     moveable_set = copy.copy(moveable_set)
-    #     point2_row = point2[0]
-    #     point2_col = col_0_7[point2[1]]
-    #
-    #     if remove_card_type[-1] == 'H':
-    #         moveable_set.add(tuple((row, col)))
-    #         moveable_set.add(tuple((point2_row, point2_col)))
-    #         moveable_set.discard(tuple((row + 1, col)))
-    #         moveable_set.discard(tuple((point2_row + 1, point2_col)))
-    #
-    #     elif remove_card_type[-1] == 'V':
-    #         if row > point2_row:
-    #             moveable_set.add(tuple((point2_row, point2_col)))
-    #             moveable_set.discard(tuple((row + 1, col)))
-    #         else:
-    #             moveable_set.add(tuple((row, col)))
-    #             moveable_set.discard(tuple((point2_row + 1, point2_col)))
-    #
-    #     return moveable_set
-
     def remove(self, board, remove_position):
-        board_C = copy.deepcopy(board)
         row = remove_position[0]
         col = remove_position[1]
-        point1 = tuple((row, board_C.col_header[col]))
-        entry1 = board_C.get_data_entry(point1)
+        point1 = tuple((row, board.col_header[col]))
+        entry1 = board.get_data_entry(point1)
+        point2 = entry1.get_neighbour_position()
         entry2 = entry1.get_neighbour()
         entry1.set_empty()
         entry2.set_empty()
-        return board_C
 
+        return tuple((point1, point2))
 
     def check_removable(self, board, remove_position):
         # judge the last move card whether can remove
@@ -510,31 +436,29 @@ class Node(object):
         # print('-'*10, selection_btn)
         row = move_point[0]
         col = move_point[1]
-        board_C = copy.deepcopy(board)
 
         if selection[-1] == 'H':
-            point1 = tuple((row, board_C.col_header[col]))
-            point2 = tuple((row, board_C.col_header[col + 1]))
-            entry1 = board_C.get_data_entry(point1)
-            entry2 = board_C.get_data_entry(point2)
+            point1 = tuple((row, board.col_header[col]))
+            point2 = tuple((row, board.col_header[col + 1]))
+            entry1 = board.get_data_entry(point1)
+            entry2 = board.get_data_entry(point2)
             str = selection.split('_')
             entry1.set_type(element_map[str[0] + '_' + str[1]])
             entry2.set_type(element_map[str[2] + '_' + str[3]])
             self.config_element(entry1, entry2, point1, point2, selection)
 
         elif selection[-1] == 'V':
-            point1 = tuple((row, board_C.col_header[col]))
-            point2 = tuple((row + 1, board_C.col_header[col]))
-            entry1 = board_C.get_data_entry(point1)
-            entry2 = board_C.get_data_entry(point2)
+            point1 = tuple((row, board.col_header[col]))
+            point2 = tuple((row + 1, board.col_header[col]))
+            entry1 = board.get_data_entry(point1)
+            entry2 = board.get_data_entry(point2)
             str = selection.split('_')
             entry1.set_type(element_map[str[0] + '_' + str[1]])
             entry2.set_type(element_map[str[2] + '_' + str[3]])
             self.config_element(entry1, entry2, point1, point2, selection)
 
         self.move_card = tuple((point1, point2))
-
-        return board_C
+        return self.move_card
 
     def config_element(self, element1, element2, point1, point2, cur_selection):
         # print('point1 point2:', point1, point2)
@@ -660,8 +584,8 @@ class CardElement(object):
 
     def __init__(self, elementType):
         self.type = elementType
-        self.neighbour = None
-        self.neighbour_position = None
+        self.neighbour = None                   # entry
+        self.neighbour_position = None          # (1,'A')
         self.card_type = None
 
     def set_empty(self):
@@ -986,6 +910,7 @@ class GUI:
                          self.depth,
                          self.last_move_card,
                          'MAX',
+                         -maxsize,
                          self.cur_selection,
                          moveable_set,
                          removable_set)
@@ -1019,7 +944,7 @@ class GUI:
             col = col_map[point1[1]]
             self.execute_ai_step(row, col)
         else:
-            remove_position = best_node.remove_card_position
+            remove_position = best_node.remove_card_position[0]
             row = remove_position[0]
             col = col_map[remove_position[1]]
             self.execute_ai_step(row, col)
@@ -1029,23 +954,6 @@ class GUI:
             row = move_point[0]
             col = col_map[move_point[1]]
             self.execute_ai_step(row, col)
-
-    # def get_removable_set(self, board):
-    #     removable_set = set()
-    #
-    #     for row in board.row_header:
-    #         for col in range(board.cols):
-    #             entry1 = board.get_data_entry(tuple((row, board.col_header[col])))
-    #             if entry1.get_type() != 0 and self.check_removeable(row, col, self.board):
-    #                 neighbour = entry1.get_neighbour_position()
-    #                 neighbourXY = tuple((neighbour[0], col_0_7[neighbour[1]]))
-    #                 if (neighbourXY not in removable_set) and (tuple((row, col)) not in removable_set):
-    #                     if entry1.get_card_type()[-1] == 'H':
-    #                         removable_set.add(tuple((row, col))) if col < neighbourXY[1] else removable_set.add(neighbourXY)
-    #                     else:
-    #                         removable_set.add(tuple((row, col))) if row < neighbourXY[0] else removable_set.add(neighbourXY)
-    #     return removable_set
-
 
 
     def execute_ai_step(self, row , col):
@@ -1186,6 +1094,7 @@ class GUI:
                          self.depth,
                          self.last_move_card,
                          'MAX',
+                         -maxsize,
                          self.cur_selection,
                          moveable_set,
                          removable_set)
@@ -1220,7 +1129,7 @@ class GUI:
             col = col_map[point1[1]]
             self.board_btn_clicked(row, col)
         else:
-            remove_position = best_node.remove_card_position
+            remove_position = best_node.remove_card_position[0]
             row = remove_position[0]
             col = col_map[remove_position[1]]
             self.board_btn_clicked(row, col)
@@ -1342,6 +1251,11 @@ class GUI:
         end = datetime.datetime.now()
         print(end - start)
 
+        start3 = datetime.datetime.now()
+        content = copy.deepcopy(self.board.content)
+        end3 = datetime.datetime.now()
+        print(end3 - start3)
+
         start2 = datetime.datetime.now()
         board = copy.copy(self.board)
         end2 = datetime.datetime.now()
@@ -1356,7 +1270,7 @@ class GUI:
 
     def MinMax(self, node, depth):
         if depth == 0:
-            node.i_value = naive_heuristic(node.board)
+            # node.i_value = naive_heuristic(node.board)
             return node.i_value
 
         if node.node_type == 'MAX':
