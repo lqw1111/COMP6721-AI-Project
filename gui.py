@@ -79,8 +79,8 @@ class Node(object):
 
                             self.restore(self.board, move_point, selection_btn[j])
 
-                if self.depth != depth:
-                    self.restore(self.board, self.last_move_card, self.selection_card_type)
+                # if self.depth != depth:
+                #     self.restore(self.board, self.last_move_card, self.selection_card_type)
 
             elif self.card_remain == 0:
                 # recycling step
@@ -93,8 +93,6 @@ class Node(object):
                         remove_tuple_point = self.remove(self.board, remove_position)
                         moveable_set = self.scan_for_moveable(self.board)
 
-                        if self.depth == 1:
-                            print(moveable_set)
 
                         for move_position in moveable_set:
                             for k in range(1,9):
@@ -107,6 +105,9 @@ class Node(object):
 
                                     moveable_set = self.scan_for_moveable(self.board)
                                     removable_set = self.scan_for_removable(self.board)
+
+                                    if self.depth == 1:
+                                        print(point1, moveable_set)
 
                                     self.children.append(Node(self.board,
                                                               self.card_remain - 1 + 1,
@@ -123,14 +124,13 @@ class Node(object):
 
                                     self.restore(self.board, move_point, selection_btn[k])
                         self.restore_remove(self.board, remove_tuple_point,remove_card_type)
-                        print()
 
-                if self.depth != depth:
-                    if self.recycling and (self.remove_card_type != None) and (self.remove_card_position != None):
-                        self.restore(self.board, self.last_move_card, self.selection_card_type)
-                        self.restore_remove(self.board, self.remove_card_position, self.remove_card_type)
-                    else:
-                        self.restore(self.board, self.last_move_card, self.selection_card_type)
+                # if self.depth != depth:
+                #     if self.recycling and (self.remove_card_type != None) and (self.remove_card_position != None):
+                #         self.restore(self.board, self.last_move_card, self.selection_card_type)
+                #         self.restore_remove(self.board, self.remove_card_position, self.remove_card_type)
+                #     else:
+                #         self.restore(self.board, self.last_move_card, self.selection_card_type)
 
     def restore(self, board, last_move_card, selection_btn):
 
@@ -925,7 +925,7 @@ class GUI:
         best_node = root_node
 
         if self.ab_on_off:
-            self.alpha_beta(self.depth, root_node, maxsize, -maxsize)
+            self.alpha_beta(self.depth, root_node, -maxsize, maxsize)
         else:
             self.MinMax(root_node, self.depth)
 
