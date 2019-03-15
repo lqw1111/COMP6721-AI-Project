@@ -79,9 +79,6 @@ class Node(object):
 
                             self.restore(self.board, move_point, selection_btn[j])
 
-                # if self.depth != depth:
-                #     self.restore(self.board, self.last_move_card, self.selection_card_type)
-
             elif self.card_remain == 0:
                 # recycling step
                 for remove_position in self.removable_set:
@@ -97,17 +94,12 @@ class Node(object):
                         for move_position in moveable_set:
                             for k in range(1,9):
                                 if move_position == remove_position and selection_map[remove_card_type] == k:
-                                    # print(move_position)
-                                    # print(remove_card_type)
                                     continue
                                 elif self.check_move(move_position, selection_btn[k], self.board):
                                     move_point = self.move(move_position, selection_btn[k], self.board)
 
                                     moveable_set = self.scan_for_moveable(self.board)
                                     removable_set = self.scan_for_removable(self.board)
-
-                                    if self.depth == 1:
-                                        print(point1, moveable_set)
 
                                     self.children.append(Node(self.board,
                                                               self.card_remain - 1 + 1,
@@ -124,13 +116,6 @@ class Node(object):
 
                                     self.restore(self.board, move_point, selection_btn[k])
                         self.restore_remove(self.board, remove_tuple_point,remove_card_type)
-
-                # if self.depth != depth:
-                #     if self.recycling and (self.remove_card_type != None) and (self.remove_card_position != None):
-                #         self.restore(self.board, self.last_move_card, self.selection_card_type)
-                #         self.restore_remove(self.board, self.remove_card_position, self.remove_card_type)
-                #     else:
-                #         self.restore(self.board, self.last_move_card, self.selection_card_type)
 
     def restore(self, board, last_move_card, selection_btn):
 
@@ -1145,18 +1130,6 @@ class GUI:
             col = col_map[move_point[1]]
             self.board_btn_clicked(row, col)
 
-
-    # def get_moveable_set(self, board):
-    #     # moveable store (1,0) -> (1, 'A') can be reflect to point
-    #     moveable_set = set()
-    #
-    #     for row in board.row_header:
-    #         for col in range(board.cols):
-    #             if board.get_data_entry(tuple((row, board.col_header[col]))).get_type() == 0 and self.check_moveable(row, col, self.board):
-    #                 moveable_set.add(tuple((row, col)))
-    #
-    #     return moveable_set
-
     def get_moveable_set(self, board):
         moveable_set = set()
 
@@ -1208,25 +1181,6 @@ class GUI:
         else:
             return False
 
-    # def test_function(self):
-    #     f = open('test.txt', 'r')
-    #     for line in f.readlines():
-    #         cmd = line.strip()
-    #         command = cmd.split(' ')
-    #         if len(command) == 4:
-    #             self.cur_selection = selection_btn[int(command[1])]
-    #             self.board_btn_clicked(int(command[3]), col_map[command[2]])
-    #         if len(command) == 7:
-    #             row = int(command[1])
-    #             col = col_map[command[0]]
-    #             self.board_btn_clicked(row, col)
-    #             self.cur_selection = selection_btn[int(command[4])]
-    #             col = col_map[command[-2]]
-    #             row = int(command[-1])
-    #             self.board_btn_clicked(row, col)
-    #
-    #     f.close()
-
     def board_to_matrix(self, board):
         board_matrix = np.zeros((12,8))
 
@@ -1240,17 +1194,6 @@ class GUI:
 
 
     def test_function(self):
-        # removable_set = set()
-        #
-        # for row in self.board.row_header:
-        #     for col in range(self.board.cols):
-        #         if self.board.get_data_entry(tuple((row, self.board.col_header[col]))).get_type() != 0 \
-        #                 and self.check_removeable(row, col, self.board):
-        #             neighbour = self.board.get_data_entry(tuple((row, self.board.col_header[col]))).get_neighbour_position()
-        #             neighbourXY = tuple((neighbour[0], col_0_7[neighbour[1]]))
-        #             if (neighbourXY not in removable_set) and (tuple((row, col)) not in removable_set):
-        #                 removable_set.add(tuple((row, col)))
-        # return removable_set
         start = datetime.datetime.now()
         board = copy.deepcopy(self.board)
         end = datetime.datetime.now()
@@ -1302,7 +1245,7 @@ class GUI:
     def alpha_beta(self, depth, node, alpha, beta):
         if depth == 0:
             self.alpha_beta_count = self.alpha_beta_count + 1
-            node.i_value = naive_heuristic(node.board)
+            # node.i_value = naive_heuristic(node.board)
             return node.i_value
 
         else:
