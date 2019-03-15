@@ -93,9 +93,14 @@ class Node(object):
                         remove_tuple_point = self.remove(self.board, remove_position)
                         moveable_set = self.scan_for_moveable(self.board)
 
+                        if self.depth == 1:
+                            print(moveable_set)
+
                         for move_position in moveable_set:
                             for k in range(1,9):
                                 if move_position == remove_position and selection_map[remove_card_type] == k:
+                                    # print(move_position)
+                                    # print(remove_card_type)
                                     continue
                                 elif self.check_move(move_position, selection_btn[k], self.board):
                                     move_point = self.move(move_position, selection_btn[k], self.board)
@@ -117,8 +122,8 @@ class Node(object):
                                                               remove_card_type))
 
                                     self.restore(self.board, move_point, selection_btn[k])
-
                         self.restore_remove(self.board, remove_tuple_point,remove_card_type)
+                        print()
 
                 if self.depth != depth:
                     if self.recycling and (self.remove_card_type != None) and (self.remove_card_position != None):
