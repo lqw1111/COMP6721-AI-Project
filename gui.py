@@ -985,7 +985,7 @@ class GUI:
         best_node = root_node
 
         if self.ab_on_off:
-            self.alpha_beta(self.depth, root_node, maxsize, -maxsize)
+            self.alpha_beta(self.depth, root_node, -maxsize, maxsize)
         else:
             self.MinMax(root_node, self.depth)
 
