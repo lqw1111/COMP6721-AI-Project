@@ -294,12 +294,6 @@ class Node(object):
         return tuple((point1, point2))
 
     def check_removable(self, board, remove_position):
-        # judge the last move card whether can remove
-        # get the card
-        # if the card is H
-        #       for the two upper point ,whether the point is not null
-        # if the card is V
-        #       for the two point ,whether either one point's upper point is not null
         row = remove_position[0]
         col = remove_position[1]
         point1 = tuple((row, board.col_header[col]))
@@ -334,15 +328,6 @@ class Node(object):
 
 
     def modify_moveable_set(self, move_step, moveable_set, board, selection):
-        # if selection is H
-        #       get two point1 and point2
-        #       remove the two point from the moveable_set
-        #       add the upper two point into the moveable_set
-        # if selection is V
-        #       get two point1 and point2
-        #       remove the point from the moveable_set
-        #       add the one upper point into the moveable_set
-        # return the copy of the moveable_set
         row = move_step[0]
         col = move_step[1]
         moveable_set_c = copy.copy(moveable_set)
@@ -363,25 +348,6 @@ class Node(object):
         return moveable_set_c
 
     def modify_removable_set(self, move_step, removable_set, board, selection):
-        # if selection is H
-        #       get two move point1 and point2
-        #       if row == 1
-        #              removable_set add point1 and point2 ???????
-        #       else:
-        #              point1 get the bottom point -> 1
-        #              point2 get the bottom point -> 2
-        #              1's neighbour               -> 3
-        #              2's neighbour               -> 4
-        #              remove the 1,2,3,4 point from the removeable_set
-        #              consider whether point1 and point2 can be remove ??????
-        # if selection is V
-        #       get two point1 and point2
-        #       if row == 1
-        #               removable_set add point1 and point2
-        #       else:
-        #               point bottom point -> 1
-        #               1's neightbour     -> 2
-        #               remove 1,2 from the removable set
         row = move_step[0]
         col = move_step[1]
         removable_set_c = copy.copy(removable_set)
