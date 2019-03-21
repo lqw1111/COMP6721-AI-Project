@@ -468,7 +468,7 @@ class Node(object):
     def change_to_point(self, remove_position):
         return tuple((remove_position[0], self.board.col_header[remove_position[1]]))
 
-
+    # for color
     def heuristic(self, board):
         score_H = 0
         score_V = 0
@@ -561,7 +561,7 @@ class Node(object):
 
         return score_H + score_V + score_N1 + score_N2
 
-
+    # for dots
     def heuristic2(self, board):
         score_H = 0
         score_V = 0
@@ -667,6 +667,219 @@ class Node(object):
             return 0
         else:
             return 0
+
+    def calculate_2(self, count, row, col, type):
+        if count == 1:
+            return 1
+        elif count == 2:
+            return 10
+        elif count == 3:
+            if type == 'H':
+                point1 = self.board.get_data_entry(tuple((row, self.board.col_header[col]))).get_type()
+                point2 = self.board.get_data_entry(tuple((row, self.board.col_header[col - 1]))).get_type()
+                point3 = self.board.get_data_entry(tuple((row, self.board.col_header[col - 2]))).get_type()
+                if point1 == point2 and point2 == point3:
+                    return 100
+                else:
+                    return 200
+            elif type == 'V':
+                point1 = self.board.get_data_entry(tuple((row, self.board.col_header[col]))).get_type()
+                point2 = self.board.get_data_entry(tuple((row - 1, self.board.col_header[col]))).get_type()
+                point3 = self.board.get_data_entry(tuple((row - 2, self.board.col_header[col]))).get_type()
+                if point1 == point2 and point2 == point3:
+                    return 100
+                else:
+                    return 200
+        elif count == 4:
+            return 1000
+        elif count == 0:
+            return 0
+        else:
+            return 0
+
+    def heuristic3(self, board):
+        score_H = 0
+        score_V = 0
+        score_N1 = 0
+        score_N2 = 0
+        red_count = 0
+        white_count = 0
+
+        for r in range(self.board.rows):
+            red_count = 0
+            white_count = 0
+            for c in range(self.board.cols):
+                scan_point = self.board.get_data_entry(tuple((r + 1, self.board.col_header[c]))).get_type()
+                if scan_point == 1 or scan_point == 3:
+                    red_count += 1
+                    score_H += self.calculate_2(white_count, r + 1 , c , 'H')
+                    white_count = 0
+                if scan_point == 2 or scan_point == 4:
+                    white_count += 1
+                    score_H += self.calculate_2(red_count, r + 1 , c , 'H')
+                    red_count = 0
+            if red_count != 0:
+                score_H = score_H + self.calculate(red_count)
+                red_count = 0
+            elif white_count != 0:
+                score_H = score_H + self.calculate(white_count)
+                white_count = 0
+
+        for c in range(self.board.cols):
+            red_count = 0
+            white_count = 0
+            for r in range(self.board.rows):
+                scan_point = self.board.get_data_entry(tuple((r + 1, self.board.col_header[c]))).get_type()
+                if scan_point == 1 or scan_point == 3:
+                    red_count += 1
+                    score_V += self.calculate_2(white_count, r + 1 , c , 'V')
+                    white_count = 0
+                if scan_point == 2 or scan_point == 4:
+                    white_count += 1
+                    score_V += self.calculate_2(red_count, r + 1 , c , 'V')
+                    red_count = 0
+            if red_count != 0:
+                score_V = score_V + self.calculate(red_count)
+                red_count = 0
+            elif white_count != 0:
+                score_V = score_V + self.calculate(white_count)
+                white_count = 0
+
+        for i in range(1, self.board.rows):
+            red_count = 0
+            white_count = 0
+            for j in range(self.board.cols):
+                if (i + j < self.board.rows):
+                    scan_point = self.board.get_data_entry(tuple((i + j + 1, self.board.col_header[j]))).get_type()
+                    if scan_point == 1 or scan_point == 3:
+                        red_count += 1
+                        score_N1 += self.calculate(white_count)
+                        white_count = 0
+                    if scan_point == 2 or scan_point == 4:
+                        white_count += 1
+                        score_N1 += self.calculate(red_count)
+                        red_count = 0
+            if red_count != 0:
+                score_N1 = score_N1 + self.calculate(red_count)
+                red_count = 0
+            elif white_count != 0:
+                score_N1 = score_N1 + self.calculate(white_count)
+                white_count = 0
+
+        for i in range(self.board.rows):
+            red_count = 0
+            white_count = 0
+            for j in range(self.board.cols):
+                if (i + j < self.board.cols):
+                    scan_point = self.board.get_data_entry(tuple((i + j + 1, self.board.col_header[j]))).get_type()
+                    if scan_point == 1 or scan_point == 3:
+                        red_count += 1
+                        score_N2 += self.calculate(white_count)
+                        white_count = 0
+                    if scan_point == 2 or scan_point == 4:
+                        white_count += 1
+                        score_N2 += self.calculate(red_count)
+                        red_count = 0
+            if red_count != 0:
+                score_N2 = score_N2 + self.calculate(red_count)
+                red_count = 0
+            elif white_count != 0:
+                score_N2 = score_N2 + self.calculate(white_count)
+                white_count = 0
+
+        return score_H + score_V + score_N1 + score_N2
+
+    def heuristic4(self, board):
+        score_H = 0
+        score_V = 0
+        score_N1 = 0
+        score_N2 = 0
+        red_count = 0
+        white_count = 0
+
+        for r in range(self.board.rows):
+            red_count = 0
+            white_count = 0
+            for c in range(self.board.cols):
+                scan_point = self.board.get_data_entry(tuple((r + 1, self.board.col_header[c]))).get_type()
+                if scan_point == 1 or scan_point == 4:
+                    red_count += 1
+                    score_H += self.calculate_2(white_count, r + 1 , c , 'H')
+                    white_count = 0
+                if scan_point == 2 or scan_point == 3:
+                    white_count += 1
+                    score_H += self.calculate_2(red_count, r + 1 , c , 'H')
+                    red_count = 0
+            if red_count != 0:
+                score_H = score_H + self.calculate(red_count)
+                red_count = 0
+            elif white_count != 0:
+                score_H = score_H + self.calculate(white_count)
+                white_count = 0
+
+        for c in range(self.board.cols):
+            red_count = 0
+            white_count = 0
+            for r in range(self.board.rows):
+                scan_point = self.board.get_data_entry(tuple((r + 1, self.board.col_header[c]))).get_type()
+                if scan_point == 1 or scan_point == 4:
+                    red_count += 1
+                    score_V += self.calculate_2(white_count, r + 1 , c , 'V')
+                    white_count = 0
+                if scan_point == 2 or scan_point == 3:
+                    white_count += 1
+                    score_V += self.calculate_2(red_count , r + 1 , c , 'V')
+                    red_count = 0
+            if red_count != 0:
+                score_V = score_V + self.calculate(red_count)
+                red_count = 0
+            elif white_count != 0:
+                score_V = score_V + self.calculate(white_count)
+                white_count = 0
+
+        for i in range(1, self.board.rows):
+            red_count = 0
+            white_count = 0
+            for j in range(self.board.cols):
+                if (i + j < self.board.rows):
+                    scan_point = self.board.get_data_entry(tuple((i + j + 1, self.board.col_header[j]))).get_type()
+                    if scan_point == 1 or scan_point == 4:
+                        red_count += 1
+                        score_N1 += self.calculate(white_count)
+                        white_count = 0
+                    if scan_point == 2 or scan_point == 3:
+                        white_count += 1
+                        score_N1 += self.calculate(red_count)
+                        red_count = 0
+            if red_count != 0:
+                score_N1 = score_N1 + self.calculate(red_count)
+                red_count = 0
+            elif white_count != 0:
+                score_N1 = score_N1 + self.calculate(white_count)
+                white_count = 0
+
+        for i in range(self.board.rows):
+            red_count = 0
+            white_count = 0
+            for j in range(self.board.cols):
+                if (i + j < self.board.cols):
+                    scan_point = self.board.get_data_entry(tuple((i + j + 1, self.board.col_header[j]))).get_type()
+                    if scan_point == 1 or scan_point == 4:
+                        red_count += 1
+                        score_N2 += self.calculate(white_count)
+                        white_count = 0
+                    if scan_point == 2 or scan_point == 3:
+                        white_count += 1
+                        score_N2 += self.calculate(red_count)
+                        red_count = 0
+            if red_count != 0:
+                score_N2 = score_N2 + self.calculate(red_count)
+                red_count = 0
+            elif white_count != 0:
+                score_N2 = score_N2 + self.calculate(white_count)
+                white_count = 0
+
+        return score_H + score_V + score_N1 + score_N2
 
 def naive_heuristic(board):
     white_hollow = 0
@@ -808,7 +1021,7 @@ class GUI:
         self.last_move_card = None
         self.player1 = None
         self.player2 = None
-        self.end = 60
+        self.end = 40
 
         self.trace_file = False
         self.ab_on_off = False
@@ -1345,17 +1558,17 @@ class GUI:
                 scan_point = self.board.get_data_entry(tuple((r + 1, self.board.col_header[c]))).get_type()
                 if scan_point == 1 or scan_point == 3:
                     red_count += 1
-                    score_H += self.calculate(white_count)
+                    score_H += self.calculate(white_count, r + 1, c, 'H')
                     white_count = 0
                 if scan_point == 2 or scan_point == 4:
                     white_count += 1
-                    score_H += self.calculate(red_count)
+                    score_H += self.calculate(red_count, r + 1, c, 'H')
                     red_count = 0
             if red_count != 0:
-                score_H = score_H + self.calculate(red_count)
+                score_H = score_H + self.calculate(red_count, r + 1, 7, 'H')
                 red_count = 0
             elif white_count != 0:
-                score_H = score_H + self.calculate(white_count)
+                score_H = score_H + self.calculate(white_count,  r + 1, 7, 'H')
                 white_count = 0
 
         for c in range(self.board.cols):
@@ -1365,70 +1578,93 @@ class GUI:
                 scan_point = self.board.get_data_entry(tuple((r + 1, self.board.col_header[c]))).get_type()
                 if scan_point == 1 or scan_point == 3:
                     red_count += 1
-                    score_V += self.calculate(white_count)
+                    score_V += self.calculate(white_count, r + 1, c, 'V')
                     white_count = 0
                 if scan_point == 2 or scan_point == 4:
                     white_count += 1
-                    score_V += self.calculate(red_count)
+                    score_V += self.calculate(red_count, r + 1, c, 'V')
                     red_count = 0
             if red_count != 0:
-                score_V = score_V + self.calculate(red_count)
+                score_V = score_V + self.calculate(red_count, 12, c , 'V')
                 red_count = 0
             elif white_count != 0:
-                score_V = score_V + self.calculate(white_count)
+                score_V = score_V + self.calculate(white_count,  12, c , 'V')
                 white_count = 0
 
         for i in range(1, self.board.rows):
             red_count = 0
             white_count = 0
             for j in range(self.board.cols):
-                if(i + j < self.board.rows):
+                if (i + j < self.board.rows):
                     scan_point = self.board.get_data_entry(tuple((i + j + 1, self.board.col_header[j]))).get_type()
                     if scan_point == 1 or scan_point == 3:
                         red_count += 1
-                        score_N1 += self.calculate(white_count)
+                        score_N1 += self.calculate(white_count, i + j + 1, j, 'N')
                         white_count = 0
                     if scan_point == 2 or scan_point == 4:
                         white_count += 1
-                        score_N1 += self.calculate(red_count)
+                        score_N1 += self.calculate(red_count, i + j + 1, j, 'N')
                         red_count = 0
             if red_count != 0:
-                score_N1 = score_N1 + self.calculate(red_count)
+                # score_N1 = score_N1 + self.calculate(red_count)
                 red_count = 0
             elif white_count != 0:
-                score_N1 = score_N1 + self.calculate(white_count)
+                # score_N1 = score_N1 + self.calculate(white_count)
                 white_count = 0
 
         for i in range(self.board.rows):
             red_count = 0
             white_count = 0
             for j in range(self.board.cols):
-                if(i + j < self.board.cols):
+                if (i + j < self.board.cols):
                     scan_point = self.board.get_data_entry(tuple((i + j + 1, self.board.col_header[j]))).get_type()
                     if scan_point == 1 or scan_point == 3:
                         red_count += 1
-                        score_N2 += self.calculate(white_count)
+                        score_N2 += self.calculate(white_count, i + j + 1, j, 'N')
                         white_count = 0
                     if scan_point == 2 or scan_point == 4:
                         white_count += 1
-                        score_N2 += self.calculate(red_count)
+                        score_N2 += self.calculate(red_count, i + j + 1, j, 'N')
                         red_count = 0
             if red_count != 0:
-                score_N2 = score_N2 + self.calculate(red_count)
+                # score_N2 = score_N2 + self.calculate(red_count)
                 red_count = 0
             elif white_count != 0:
-                score_N2 = score_N2 + self.calculate(white_count)
+                # score_N2 = score_N2 + self.calculate(white_count)
                 white_count = 0
 
-        print(score_H + score_V)
+        print(score_H + score_V + score_N1 + score_N2)
 
-    def calculate(self, count):
+    def calculate(self, count, row, col, type):
         if count == 1:
             return 1
         elif count == 2:
             return 10
         elif count == 3:
-            return 100
+            if type == 'H':
+                point1 = self.board.get_data_entry(tuple((row, self.board.col_header[col]))).get_type()
+                point2 = self.board.get_data_entry(tuple((row, self.board.col_header[col - 1]))).get_type()
+                point3 = self.board.get_data_entry(tuple((row, self.board.col_header[col - 2]))).get_type()
+                if point1 == point2 == point3:
+                    return 100
+                else:
+                    return 200
+            elif type == 'V':
+                point1 = self.board.get_data_entry(tuple((row, self.board.col_header[col]))).get_type()
+                point2 = self.board.get_data_entry(tuple((row - 1, self.board.col_header[col]))).get_type()
+                point3 = self.board.get_data_entry(tuple((row - 2, self.board.col_header[col]))).get_type()
+                if point1 == point2 == point3:
+                    return 100
+                else:
+                    return 200
+            else:
+                point1 = self.board.get_data_entry(tuple((row, self.board.col_header[col]))).get_type()
+                point2 = self.board.get_data_entry(tuple((row - 1, self.board.col_header[col - 1]))).get_type()
+                point3 = self.board.get_data_entry(tuple((row - 2, self.board.col_header[col - 2]))).get_type()
+                if point1 == point2 == point3:
+                    return 100
+                else:
+                    return 200
         elif count == 4:
             return 1000
         elif count == 0:
