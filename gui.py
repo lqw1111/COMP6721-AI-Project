@@ -1680,7 +1680,7 @@ class GUI:
             return node.i_value
 
         if node.node_type == 'MAX':
-            best_value = -maxsize;
+            best_value = -maxsize
             for i in range(len(node.children)):
                 child = node.children[i]
                 selected_node_value = self.MinMax(child, depth - 1)
